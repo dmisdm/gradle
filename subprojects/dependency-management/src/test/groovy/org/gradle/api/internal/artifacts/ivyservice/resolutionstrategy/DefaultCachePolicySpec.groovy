@@ -59,7 +59,7 @@ class DefaultCachePolicySpec extends Specification {
         def versions = emptySet()
 
         then:
-        !cachePolicy.mustRefreshVersionList(moduleIdentifier, versions, WEEK)
+        !cachePolicy.versionListExpiry(moduleIdentifier, versions, WEEK)
     }
 
     def 'never expires missing module for non changing module'() {
@@ -103,7 +103,7 @@ class DefaultCachePolicySpec extends Specification {
         })
 
         then:
-        cachePolicy.mustRefreshVersionList(null, null, 2 * SECOND)
+        cachePolicy.versionListExpiry(null, null, 2 * SECOND)
     }
 
     def "applies useCachedResult for dynamic versions"() {
@@ -115,7 +115,7 @@ class DefaultCachePolicySpec extends Specification {
         })
 
         then:
-        !cachePolicy.mustRefreshVersionList(null, null, 2 * SECOND)
+        !cachePolicy.versionListExpiry(null, null, 2 * SECOND)
     }
 
     def "applies cacheFor rules for dynamic versions"() {
@@ -140,7 +140,7 @@ class DefaultCachePolicySpec extends Specification {
                 t.refresh()
             }
         })
-        cachePolicy.mustRefreshVersionList(moduleIdentifier('g', 'n', 'v').module, [moduleIdentifier('group', 'name', 'version')] as Set, 0)
+        cachePolicy.versionListExpiry(moduleIdentifier('g', 'n', 'v').module, [moduleIdentifier('group', 'name', 'version')] as Set, 0)
     }
 
     def "provides details of cached module"() {
@@ -277,10 +277,10 @@ class DefaultCachePolicySpec extends Specification {
 
     private def hasDynamicVersionTimeout(int timeout) {
         def moduleId = moduleIdentifier('group', 'name', 'version')
-        assert !cachePolicy.mustRefreshVersionList(null, [moduleId] as Set, 100)
-        assert !cachePolicy.mustRefreshVersionList(null, [moduleId] as Set, timeout);
-        assert !cachePolicy.mustRefreshVersionList(null, [moduleId] as Set, timeout - 1)
-        assert cachePolicy.mustRefreshVersionList(null, [moduleId] as Set, timeout + 1)
+        assert !cachePolicy.versionListExpiry(null, [moduleId] as Set, 100)
+        assert !cachePolicy.versionListExpiry(null, [moduleId] as Set, timeout);
+        assert !cachePolicy.versionListExpiry(null, [moduleId] as Set, timeout - 1)
+        assert cachePolicy.versionListExpiry(null, [moduleId] as Set, timeout + 1)
         true
     }
 

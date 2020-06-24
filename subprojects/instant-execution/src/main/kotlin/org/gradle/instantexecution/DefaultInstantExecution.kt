@@ -136,7 +136,6 @@ class DefaultInstantExecution internal constructor(
         problems.storing()
 
         Instrumented.discardListener()
-        stopCollectingCacheFingerprint()
 
         buildOperationExecutor.withStoreOperation {
             cache.useForStore(cacheKey.string) { layout ->
@@ -200,11 +199,6 @@ class DefaultInstantExecution internal constructor(
         cacheFingerprintController.startCollectingFingerprint {
             cacheFingerprintWriterContextFor(it)
         }
-    }
-
-    private
-    fun stopCollectingCacheFingerprint() {
-        cacheFingerprintController.stopCollectingFingerprint()
     }
 
     private

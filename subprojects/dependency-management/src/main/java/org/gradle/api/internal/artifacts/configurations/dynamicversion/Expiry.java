@@ -14,17 +14,12 @@
  * limitations under the License.
  */
 
-package org.gradle.api.internal.artifacts.ivyservice.ivyresolve;
+package org.gradle.api.internal.artifacts.configurations.dynamicversion;
 
-import org.gradle.api.artifacts.component.ModuleComponentSelector;
-import org.gradle.api.internal.artifacts.configurations.dynamicversion.Expiry;
-import org.gradle.internal.service.scopes.EventScope;
-import org.gradle.internal.service.scopes.Scopes;
+import java.time.Duration;
 
-/**
- * Notified of dynamic version resolution, so this can be noted in the configuration cache inputs
- */
-@EventScope(Scopes.Build)
-public interface DynamicVersionResolutionListener {
-    void onDynamicVersionResolve(ModuleComponentSelector requested, Expiry expiry);
+public interface Expiry {
+    boolean isMustCheck();
+
+    Duration getKeepFor();
 }

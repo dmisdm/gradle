@@ -44,8 +44,8 @@ public class RepositoryChainDependencyToComponentIdResolver implements Dependenc
     private final DynamicVersionResolver dynamicRevisionResolver;
     private final AttributeContainer consumerAttributes;
 
-    public RepositoryChainDependencyToComponentIdResolver(VersionedComponentChooser componentChooser, Transformer<ModuleComponentResolveMetadata, RepositoryChainModuleResolution> metaDataFactory, VersionParser versionParser, AttributeContainer consumerAttributes, ImmutableAttributesFactory attributesFactory, ComponentMetadataProcessorFactory componentMetadataProcessorFactory, ComponentMetadataSupplierRuleExecutor componentMetadataSupplierRuleExecutor, CachePolicy cachePolicy, DynamicVersionResolutionListener listener) {
-        this.dynamicRevisionResolver = new DynamicVersionResolver(componentChooser, versionParser, metaDataFactory, attributesFactory, componentMetadataProcessorFactory, componentMetadataSupplierRuleExecutor, cachePolicy, listener);
+    public RepositoryChainDependencyToComponentIdResolver(VersionedComponentChooser componentChooser, Transformer<ModuleComponentResolveMetadata, RepositoryChainModuleResolution> metaDataFactory, VersionParser versionParser, AttributeContainer consumerAttributes, ImmutableAttributesFactory attributesFactory, ComponentMetadataProcessorFactory componentMetadataProcessorFactory, ComponentMetadataSupplierRuleExecutor componentMetadataSupplierRuleExecutor, CachePolicy cachePolicy) {
+        this.dynamicRevisionResolver = new DynamicVersionResolver(componentChooser, versionParser, metaDataFactory, attributesFactory, componentMetadataProcessorFactory, componentMetadataSupplierRuleExecutor, cachePolicy);
         this.consumerAttributes = consumerAttributes;
     }
 

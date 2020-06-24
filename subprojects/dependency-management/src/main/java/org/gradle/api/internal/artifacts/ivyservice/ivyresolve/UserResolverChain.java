@@ -48,11 +48,11 @@ public class UserResolverChain implements ComponentResolvers {
                              ImmutableAttributesFactory attributesFactory,
                              ComponentMetadataProcessorFactory componentMetadataProcessor,
                              ComponentMetadataSupplierRuleExecutor componentMetadataSupplierRuleExecutor,
-                             CachePolicy cachePolicy, DynamicVersionResolutionListener listener) {
+                             CachePolicy cachePolicy) {
         this.componentSelectionRules = componentSelectionRules;
         VersionedComponentChooser componentChooser = new DefaultVersionedComponentChooser(versionComparator, versionParser, componentSelectionRules, attributesSchema);
         ModuleTransformer metaDataFactory = new ModuleTransformer();
-        componentIdResolver = new RepositoryChainDependencyToComponentIdResolver(componentChooser, metaDataFactory, versionParser, consumerAttributes, attributesFactory, componentMetadataProcessor, componentMetadataSupplierRuleExecutor, cachePolicy, listener);
+        componentIdResolver = new RepositoryChainDependencyToComponentIdResolver(componentChooser, metaDataFactory, versionParser, consumerAttributes, attributesFactory, componentMetadataProcessor, componentMetadataSupplierRuleExecutor, cachePolicy);
         componentResolver = new RepositoryChainComponentMetaDataResolver(componentChooser, metaDataFactory);
         artifactResolver = new RepositoryChainArtifactResolver();
     }

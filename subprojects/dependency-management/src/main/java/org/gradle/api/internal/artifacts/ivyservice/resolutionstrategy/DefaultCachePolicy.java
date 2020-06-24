@@ -28,9 +28,11 @@ import org.gradle.api.internal.artifacts.cache.ModuleResolutionControl;
 import org.gradle.api.internal.artifacts.cache.ResolutionControl;
 import org.gradle.api.internal.artifacts.configurations.MutationValidator;
 import org.gradle.api.internal.artifacts.configurations.dynamicversion.CachePolicy;
+import org.gradle.api.internal.artifacts.configurations.dynamicversion.Expiry;
 import org.gradle.api.internal.artifacts.ivyservice.modulecache.dynamicversions.DefaultResolvedModuleVersion;
 
 import java.io.File;
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -114,6 +116,7 @@ public class DefaultCachePolicy implements CachePolicy {
 
     /**
      * Apply a rule to control resolution of dependencies.
+     *
      * @param rule the rule to apply
      */
     private void eachDependency(Action<? super DependencyResolutionControl> rule) {
@@ -123,6 +126,7 @@ public class DefaultCachePolicy implements CachePolicy {
 
     /**
      * Apply a rule to control resolution of modules.
+     *
      * @param rule the rule to apply
      */
     private void eachModule(Action<? super ModuleResolutionControl> rule) {
@@ -132,6 +136,7 @@ public class DefaultCachePolicy implements CachePolicy {
 
     /**
      * Apply a rule to control resolution of artifacts.
+     *
      * @param rule the rule to apply
      */
     private void eachArtifact(Action<? super ArtifactResolutionControl> rule) {
@@ -140,17 +145,17 @@ public class DefaultCachePolicy implements CachePolicy {
     }
 
     @Override
-    public boolean mustRefreshVersionList(final ModuleIdentifier moduleIdentifier, Set<ModuleVersionIdentifier> matchingVersions, long ageMillis) {
-        CachedDependencyResolutionControl dependencyResolutionControl = new CachedDependencyResolutionControl(moduleIdentifier, matchingVersions, ageMillis);
+    public Expiry versionListExpiry(ModuleIdentifier moduleIdentifier, Set<ModuleVersionIdentifier> moduleVersions, Duration age) {
+        CachedDependencyResolutionControl dependencyResolutionControl = new CachedDependencyResolutionControl(moduleIdentifier, moduleVersions, age.toMillis());
 
         for (Action<? super DependencyResolutionControl> rule : dependencyCacheRules) {
             rule.execute(dependencyResolutionControl);
             if (dependencyResolutionControl.ruleMatch()) {
-                return dependencyResolutionControl.mustCheck();
+                break;
             }
         }
 
-        return false;
+        return dependencyResolutionControl;
     }
 
     @Override
@@ -183,7 +188,7 @@ public class DefaultCachePolicy implements CachePolicy {
         for (Action<? super ModuleResolutionControl> rule : moduleCacheRules) {
             rule.execute(moduleResolutionControl);
             if (moduleResolutionControl.ruleMatch()) {
-                return moduleResolutionControl.mustCheck();
+                return moduleResolutionControl.isMustCheck();
             }
         }
 
@@ -202,13 +207,13 @@ public class DefaultCachePolicy implements CachePolicy {
     @Override
     public boolean mustRefreshArtifact(ArtifactIdentifier artifactIdentifier, File cachedArtifactFile, long ageMillis, boolean belongsToChangingModule, boolean moduleDescriptorInSync) {
         CachedArtifactResolutionControl artifactResolutionControl = new CachedArtifactResolutionControl(artifactIdentifier, cachedArtifactFile, ageMillis, belongsToChangingModule);
-        if(belongsToChangingModule && !moduleDescriptorInSync){
+        if (belongsToChangingModule && !moduleDescriptorInSync) {
             return true;
         }
         for (Action<? super ArtifactResolutionControl> rule : artifactCacheRules) {
             rule.execute(artifactResolutionControl);
             if (artifactResolutionControl.ruleMatch()) {
-                return artifactResolutionControl.mustCheck();
+                return artifactResolutionControl.isMustCheck();
             }
         }
         return false;
@@ -218,10 +223,11 @@ public class DefaultCachePolicy implements CachePolicy {
         return new DefaultCachePolicy(this);
     }
 
-    private abstract static class AbstractResolutionControl<A, B> implements ResolutionControl<A, B> {
+    private abstract static class AbstractResolutionControl<A, B> implements ResolutionControl<A, B>, Expiry {
         private final A request;
         private final B cachedResult;
         private final long ageMillis;
+        private long keepForMillis = 0;
         private boolean ruleMatch;
         private boolean mustCheck;
 
@@ -241,7 +247,6 @@ public class DefaultCachePolicy implements CachePolicy {
             return ageMillis;
         }
 
-
         @Override
         public A getRequest() {
             return request;
@@ -254,8 +259,8 @@ public class DefaultCachePolicy implements CachePolicy {
 
         @Override
         public void cacheFor(int value, TimeUnit units) {
-            long expiryMillis = TimeUnit.MILLISECONDS.convert(value, units);
-            setMustCheck(ageMillis > expiryMillis);
+            keepForMillis = TimeUnit.MILLISECONDS.convert(value, units);
+            setMustCheck(ageMillis > keepForMillis);
         }
 
         @Override
@@ -277,7 +282,13 @@ public class DefaultCachePolicy implements CachePolicy {
             return ruleMatch;
         }
 
-        public boolean mustCheck() {
+        @Override
+        public Duration getKeepFor() {
+            return Duration.ofMillis(Math.max(0, keepForMillis - ageMillis));
+        }
+
+        @Override
+        public boolean isMustCheck() {
             return mustCheck;
         }
     }

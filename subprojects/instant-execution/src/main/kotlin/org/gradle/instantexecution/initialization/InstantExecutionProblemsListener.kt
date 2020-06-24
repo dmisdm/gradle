@@ -18,11 +18,9 @@ package org.gradle.instantexecution.initialization
 
 import org.gradle.api.InvalidUserCodeException
 import org.gradle.api.ProjectEvaluationListener
-import org.gradle.api.artifacts.component.ModuleComponentSelector
 import org.gradle.api.internal.BuildScopeListenerRegistrationListener
 import org.gradle.api.internal.GeneratedSubclasses
 import org.gradle.api.internal.TaskInternal
-import org.gradle.api.internal.artifacts.ivyservice.ivyresolve.DynamicVersionResolutionListener
 import org.gradle.api.internal.tasks.execution.TaskExecutionAccessListener
 import org.gradle.configuration.internal.UserCodeApplicationContext
 import org.gradle.instantexecution.problems.InstantExecutionProblems
@@ -36,7 +34,7 @@ import org.gradle.internal.service.scopes.ServiceScope
 
 
 @ServiceScope(Scopes.Build)
-interface InstantExecutionProblemsListener : TaskExecutionAccessListener, BuildScopeListenerRegistrationListener, DynamicVersionResolutionListener
+interface InstantExecutionProblemsListener : TaskExecutionAccessListener, BuildScopeListenerRegistrationListener
 
 
 class DefaultInstantExecutionProblemsListener internal constructor(
@@ -50,14 +48,6 @@ class DefaultInstantExecutionProblemsListener internal constructor(
 
     override fun onTaskDependenciesAccess(invocationDescription: String, task: TaskInternal) {
         onTaskExecutionAccessProblem(invocationDescription, task)
-    }
-
-    override fun onDynamicVersionResolve(requested: ModuleComponentSelector) {
-        problems.onProblem(PropertyProblem(PropertyTrace.Gradle, StructuredMessage.build {
-            text("support for dynamic dependency versions (")
-            text(requested.toString())
-            text(") is not yet implemented with the configuration cache.")
-        }))
     }
 
     private
@@ -131,8 +121,5 @@ class NoOpInstantExecutionProblemsListener : InstantExecutionProblemsListener {
     }
 
     override fun onBuildScopeListenerRegistration(listener: Any, invocationDescription: String, invocationSource: Any) {
-    }
-
-    override fun onDynamicVersionResolve(requested: ModuleComponentSelector) {
     }
 }

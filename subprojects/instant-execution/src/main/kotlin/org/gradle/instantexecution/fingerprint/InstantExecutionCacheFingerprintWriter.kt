@@ -17,8 +17,11 @@
 package org.gradle.instantexecution.fingerprint
 
 import com.google.common.collect.Sets.newConcurrentHashSet
+import org.gradle.api.artifacts.component.ModuleComponentSelector
 import org.gradle.api.execution.internal.TaskInputsListener
 import org.gradle.api.internal.TaskInternal
+import org.gradle.api.internal.artifacts.configurations.dynamicversion.Expiry
+import org.gradle.api.internal.artifacts.ivyservice.ivyresolve.DynamicVersionResolutionListener
 import org.gradle.api.internal.file.FileCollectionInternal
 import org.gradle.api.internal.provider.ValueSourceProviderFactory
 import org.gradle.api.internal.provider.sources.FileContentValueSource
@@ -40,11 +43,13 @@ internal
 class InstantExecutionCacheFingerprintWriter(
     private val host: Host,
     private val writeContext: DefaultWriteContext
-) : ValueSourceProviderFactory.Listener, TaskInputsListener, ScriptExecutionListener, UndeclaredBuildInputListener {
+) : ValueSourceProviderFactory.Listener, TaskInputsListener, ScriptExecutionListener, UndeclaredBuildInputListener, DynamicVersionResolutionListener {
 
     interface Host {
 
         val allInitScripts: List<File>
+
+        val buildStartTime: Long
 
         fun hashCodeOf(file: File): HashCode?
 
@@ -56,6 +61,9 @@ class InstantExecutionCacheFingerprintWriter(
 
     private
     val capturedFiles: MutableSet<File>
+
+    private
+    val undeclaredSystemProperties = mutableSetOf<String>()
 
     init {
         val initScripts = host.allInitScripts
@@ -77,7 +85,14 @@ class InstantExecutionCacheFingerprintWriter(
         writeContext.close()
     }
 
+    override fun onDynamicVersionResolve(requested: ModuleComponentSelector, expiry: Expiry) {
+        write(InstantExecutionCacheFingerprint.DynamicDependencyVersion(requested.displayName, host.buildStartTime + expiry.keepFor.toMillis()))
+    }
+
     override fun systemPropertyRead(key: String) {
+        if (!undeclaredSystemProperties.add(key)) {
+            return
+        }
         write(InstantExecutionCacheFingerprint.UndeclaredSystemProperty(key))
     }
 
