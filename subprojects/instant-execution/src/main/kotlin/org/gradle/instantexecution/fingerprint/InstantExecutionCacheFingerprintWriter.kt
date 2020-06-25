@@ -59,6 +59,8 @@ class InstantExecutionCacheFingerprintWriter(
         ): HashCode
     }
 
+    private var ignoreValueSources = false
+
     private
     val capturedFiles: MutableSet<File>
 
@@ -85,6 +87,11 @@ class InstantExecutionCacheFingerprintWriter(
         writeContext.close()
     }
 
+    fun stopCollectingValueSources() {
+        // TODO - this is a temporary step, see the comment in DefaultInstantExecution
+        ignoreValueSources = true
+    }
+
     override fun onDynamicVersionResolve(requested: ModuleComponentSelector, expiry: Expiry) {
         write(InstantExecutionCacheFingerprint.DynamicDependencyVersion(requested.displayName, host.buildStartTime + expiry.keepFor.toMillis()))
     }
@@ -99,6 +106,9 @@ class InstantExecutionCacheFingerprintWriter(
     override fun <T : Any, P : ValueSourceParameters> valueObtained(
         obtainedValue: ValueSourceProviderFactory.Listener.ObtainedValue<T, P>
     ) {
+        if (ignoreValueSources) {
+            return
+        }
         when (val parameters = obtainedValue.valueSourceParameters) {
             is FileContentValueSource.Parameters -> {
                 parameters.file.orNull?.asFile?.let { file ->

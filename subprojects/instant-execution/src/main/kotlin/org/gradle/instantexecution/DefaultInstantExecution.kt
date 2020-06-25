@@ -135,7 +135,11 @@ class DefaultInstantExecution internal constructor(
 
         problems.storing()
 
+        // TODO - fingerprint should be collected until the state file has been written, as user code can run during this process
+        // Moving this is currently broken because the Jar task queries provider values when serializing the manifest file tree and this
+        // can cause the provider value to incorrectly be treated as a task graph input
         Instrumented.discardListener()
+        stopCollectingCacheFingerprint()
 
         buildOperationExecutor.withStoreOperation {
             cache.useForStore(cacheKey.string) { layout ->
@@ -199,6 +203,11 @@ class DefaultInstantExecution internal constructor(
         cacheFingerprintController.startCollectingFingerprint {
             cacheFingerprintWriterContextFor(it)
         }
+    }
+
+    private
+    fun stopCollectingCacheFingerprint() {
+        cacheFingerprintController.stopCollectingFingerprint()
     }
 
     private

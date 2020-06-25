@@ -90,17 +90,20 @@ class InstantExecutionCacheFingerprintController internal constructor(
         private val outputStream: ByteArrayOutputStream
     ) : WritingState() {
         override fun stop(): WritingState {
-            removeListener(fingerprintWriter)
-            fingerprintWriter.close()
-            return Written(outputStream)
+            // TODO - this is a temporary step, see the comment in DefaultInstantExecution
+            fingerprintWriter.stopCollectingValueSources()
+            return Written(fingerprintWriter, outputStream)
         }
     }
 
     private
     inner class Written(
+        private val fingerprintWriter: InstantExecutionCacheFingerprintWriter,
         private val outputStream: ByteArrayOutputStream
     ) : WritingState() {
         override fun commit(fingerprintFile: File): WritingState {
+            removeListener(fingerprintWriter)
+            fingerprintWriter.close()
             fingerprintFile
                 .outputStream()
                 .use(outputStream::writeTo)
@@ -115,8 +118,12 @@ class InstantExecutionCacheFingerprintController internal constructor(
         writingState = writingState.start(writeContextForOutputStream)
     }
 
+    fun stopCollectingFingerprint() {
+        writingState = writingState.stop()
+    }
+
     fun commitFingerprintTo(fingerprintFile: File) {
-        writingState = writingState.stop().commit(fingerprintFile)
+        writingState = writingState.commit(fingerprintFile)
     }
 
     suspend fun ReadContext.checkFingerprint(): InvalidationReason? =

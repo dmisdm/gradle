@@ -29,6 +29,7 @@ import org.gradle.internal.Actions
 import org.gradle.internal.component.external.model.DefaultModuleComponentIdentifier
 import spock.lang.Specification
 
+import java.time.Duration
 import java.util.concurrent.TimeUnit
 
 import static java.util.Collections.emptySet
@@ -59,7 +60,7 @@ class DefaultCachePolicySpec extends Specification {
         def versions = emptySet()
 
         then:
-        !cachePolicy.versionListExpiry(moduleIdentifier, versions, WEEK)
+        !cachePolicy.versionListExpiry(moduleIdentifier, versions, Duration.ofMillis(WEEK)).mustCheck
     }
 
     def 'never expires missing module for non changing module'() {
@@ -103,7 +104,7 @@ class DefaultCachePolicySpec extends Specification {
         })
 
         then:
-        cachePolicy.versionListExpiry(null, null, 2 * SECOND)
+        cachePolicy.versionListExpiry(null, null, Duration.ofMillis(2 * SECOND)).mustCheck
     }
 
     def "applies useCachedResult for dynamic versions"() {
@@ -115,7 +116,7 @@ class DefaultCachePolicySpec extends Specification {
         })
 
         then:
-        !cachePolicy.versionListExpiry(null, null, 2 * SECOND)
+        !cachePolicy.versionListExpiry(null, null, Duration.ofMillis(2 * SECOND)).mustCheck
     }
 
     def "applies cacheFor rules for dynamic versions"() {
@@ -140,7 +141,7 @@ class DefaultCachePolicySpec extends Specification {
                 t.refresh()
             }
         })
-        cachePolicy.versionListExpiry(moduleIdentifier('g', 'n', 'v').module, [moduleIdentifier('group', 'name', 'version')] as Set, 0)
+        cachePolicy.versionListExpiry(moduleIdentifier('g', 'n', 'v').module, [moduleIdentifier('group', 'name', 'version')] as Set, Duration.ofMillis(0)).mustCheck
     }
 
     def "provides details of cached module"() {
@@ -237,20 +238,30 @@ class DefaultCachePolicySpec extends Specification {
         given:
         cachePolicy.setMutationValidator(validator)
 
-        when: cachePolicy.cacheChangingModulesFor(0, TimeUnit.HOURS)
-        then: (1.._) * validator.validateMutation(STRATEGY)
+        when:
+        cachePolicy.cacheChangingModulesFor(0, TimeUnit.HOURS)
+        then:
+        (1.._) * validator.validateMutation(STRATEGY)
 
-        when: cachePolicy.cacheDynamicVersionsFor(0, TimeUnit.HOURS)
-        then: 1 * validator.validateMutation(STRATEGY)
+        when:
+        cachePolicy.cacheDynamicVersionsFor(0, TimeUnit.HOURS)
+        then:
+        1 * validator.validateMutation(STRATEGY)
 
-        when: cachePolicy.eachArtifact(Actions.doNothing())
-        then: 1 * validator.validateMutation(STRATEGY)
+        when:
+        cachePolicy.eachArtifact(Actions.doNothing())
+        then:
+        1 * validator.validateMutation(STRATEGY)
 
-        when: cachePolicy.eachDependency(Actions.doNothing())
-        then: 1 * validator.validateMutation(STRATEGY)
+        when:
+        cachePolicy.eachDependency(Actions.doNothing())
+        then:
+        1 * validator.validateMutation(STRATEGY)
 
-        when: cachePolicy.eachModule(Actions.doNothing())
-        then: 1 * validator.validateMutation(STRATEGY)
+        when:
+        cachePolicy.eachModule(Actions.doNothing())
+        then:
+        1 * validator.validateMutation(STRATEGY)
     }
 
     def "mutation is not checked for copy"() {
@@ -259,28 +270,38 @@ class DefaultCachePolicySpec extends Specification {
         cachePolicy.setMutationValidator(validator)
         def copy = cachePolicy.copy()
 
-        when: copy.cacheChangingModulesFor(0, TimeUnit.HOURS)
-        then: 0 * validator.validateMutation(_)
+        when:
+        copy.cacheChangingModulesFor(0, TimeUnit.HOURS)
+        then:
+        0 * validator.validateMutation(_)
 
-        when: copy.cacheDynamicVersionsFor(0, TimeUnit.HOURS)
-        then: 0 * validator.validateMutation(_)
+        when:
+        copy.cacheDynamicVersionsFor(0, TimeUnit.HOURS)
+        then:
+        0 * validator.validateMutation(_)
 
-        when: copy.eachArtifact(Actions.doNothing())
-        then: 0 * validator.validateMutation(_)
+        when:
+        copy.eachArtifact(Actions.doNothing())
+        then:
+        0 * validator.validateMutation(_)
 
-        when: copy.eachDependency(Actions.doNothing())
-        then: 0 * validator.validateMutation(_)
+        when:
+        copy.eachDependency(Actions.doNothing())
+        then:
+        0 * validator.validateMutation(_)
 
-        when: copy.eachModule(Actions.doNothing())
-        then: 0 * validator.validateMutation(_)
+        when:
+        copy.eachModule(Actions.doNothing())
+        then:
+        0 * validator.validateMutation(_)
     }
 
     private def hasDynamicVersionTimeout(int timeout) {
         def moduleId = moduleIdentifier('group', 'name', 'version')
-        assert !cachePolicy.versionListExpiry(null, [moduleId] as Set, 100)
-        assert !cachePolicy.versionListExpiry(null, [moduleId] as Set, timeout);
-        assert !cachePolicy.versionListExpiry(null, [moduleId] as Set, timeout - 1)
-        assert cachePolicy.versionListExpiry(null, [moduleId] as Set, timeout + 1)
+        assert !cachePolicy.versionListExpiry(null, [moduleId] as Set, Duration.ofMillis(100)).mustCheck
+        assert !cachePolicy.versionListExpiry(null, [moduleId] as Set, Duration.ofMillis(timeout)).mustCheck
+        assert !cachePolicy.versionListExpiry(null, [moduleId] as Set, Duration.ofMillis(timeout - 1)).mustCheck
+        assert cachePolicy.versionListExpiry(null, [moduleId] as Set, Duration.ofMillis(timeout + 1)).mustCheck
         true
     }
 
